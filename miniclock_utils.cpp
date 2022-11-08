@@ -3,6 +3,16 @@
 timer	clock;
 timer alarm;
 
+int	startButtonState;
+int	stopButtonState;
+int	startButtonState;
+int	lastStartButtonState = 0;
+int	lastStopButtonState = 0;
+int	lastStartButtonState = 0;
+int	initDebouceTime = 0;
+int debouceDelay = 50;
+
+
 String timerStr = "00 : 00 : 00";
 
 //give Start value of clock
@@ -23,7 +33,7 @@ void	run_up()
   clock.sec %= 60;
   clock.hr += (clock.min/60);
   clock.min %= 60;
-  clock.hr %= 24;  
+  clock.hr %= 24;
 }
 
 //show clock;
@@ -71,9 +81,29 @@ void  plus_hr(timer obj)
   obj.hr %= 24;  
 }
 
+// Debouce
+
+void  isStopButton()
+{
+  int read_1 = digitalRead(startButton);
+  
+  if (read_1 != lastStartButtonState)
+  	initDebouceTime = millis();
+  
+  if (millis() - initDebouceTime > debouceDelay)
+  {
+    if (read_1 != startButtonState)
+    {
+    	startButtonState = read_1;
+
+    }
+  }
+  lastStartButtonState = read_1;
+}
+
 void  check_alarm()
 {
-  if (clock == alarm)
+  if (clock.hr == alarm.hr && clock.min == alarm.min)
   {
     //ALARM !!
   }
