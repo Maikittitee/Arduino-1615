@@ -21,11 +21,13 @@ int	lastResetButtonState = 0;
 int	initDebouceTime = 0;
 int debouceDelay = 50;
 
-typedef struct timer{
+int timerIsRun = 0;
+
+typedef struct s_timer{
 	int hr;
   int min;
   int sec;
-} timer;
+} t_timer;
 
 int	timer1_counter;
 
@@ -33,8 +35,9 @@ int t1 = 0;
 
 Adafruit_SSD1306 OLED(OLED_RESET);
 
-timer clock;
-timer alarm;
+t_timer clock;
+t_timer timer;
+t_timer alarm;
 
 String timerStr = "00 : 00 : 00";
 String clockStr = "00 : 00 : 00";
@@ -45,11 +48,41 @@ String clockStr = "00 : 00 : 00";
 //give Start value of clock
 void	init_clock()
 {
-  clock.hr = 0;
-  clock.min = 0;
-  clock.sec = 0;
+  if (EEPROM.read(0) || EEPROM.read(1) || EEPROM.read(2))
+  {
+    clock.hr = EEPROM.read(0);
+    clock.min = EEPROM.read(1);
+    clock.sec = EEPROM.read(2);
+  }
+  else
+  {
+    clock.hr = 0;
+    clock.min = 0;
+    clock.sec = 0;
+  }
+  
 }
 
+void	init_timer()
+{
+  timer.hr = 0;
+  timer.min = 0;
+  timer.sec = 0;
+}
+
+void  init_eeprom()
+{
+  EEPROM.write(0, clock.hr);
+  EEPROM.write(1, clock.min);
+  EEPROM.write(2, clock.sec);
+}
+
+void  update_eeprom()
+{
+  EEPROM.update(0, clock.hr);
+  EEPROM.update(1, clock.min);
+  EEPROM.update(2, clock.sec);
+}
 //count the clock up, timer up
 
 void	run_up()
@@ -62,85 +95,123 @@ void	run_up()
   clock.hr %= 24;
 }
 
+void	run_timer()
+{
+  timer.sec += 1;
+  timer.min += (timer.sec/60);
+  timer.sec %= 60;
+  timer.hr += (timer.min/60);
+  timer.min %= 60;
+  timer.hr %= 24;
+}
+
 //show clock;
 
 void	print_clock()
 {
-  timerStr[0] = (clock.hr / 10) + '0';
-  timerStr[1] = (clock.hr % 10) + '0';
+  clockStr[0] = (clock.hr / 10) + '0';
+  clockStr[1] = (clock.hr % 10) + '0';
 
-  timerStr[5] = (clock.min / 10) + '0';
-  timerStr[6] = (clock.min % 10) + '0';
+  clockStr[5] = (clock.min / 10) + '0';
+  clockStr[6] = (clock.min % 10) + '0';
 
-  timerStr[10] = (clock.sec / 10) + '0';
-  timerStr[11] = (clock.sec % 10) + '0';
+  clockStr[10] = (clock.sec / 10) + '0';
+  clockStr[11] = (clock.sec % 10) + '0';
 
-  Serial.println(timerStr);
+Serial.print("Clock :");
+  Serial.println(clockStr);
+
+}
+
+void	print_timer()
+{
+  timerStr[0] = (timer.hr / 10) + '0';
+  timerStr[1] = (timer.hr % 10) + '0';
+
+  timerStr[5] = (timer.min / 10) + '0';
+  timerStr[6] = (timer.min % 10) + '0';
+
+  timerStr[10] = (timer.sec / 10) + '0';
+  timerStr[11] = (timer.sec % 10) + '0';
+
+  Serial.print("Timer :");
+  Serial.print(timerStr);
+  Serial.print(" | ");
 
 }
 
 // For setting Alarm Time, setting clock
 
-void  plus_sec(timer obj)
-{
-  obj.sec += 1;
-  obj.min += (clock.sec/60);
-  obj.sec %= 60;
-  obj.hr += (clock.min/60);
-  obj.min %= 60;
-  obj.hr %= 24;  
-}
-
-void  plus_min(timer obj)
-{
-  obj.min += 1;
-  obj.sec %= 60;
-  obj.hr += (clock.min/60);
-  obj.min %= 60;
-  obj.hr %= 24;   
-}
-
-void  plus_hr(timer obj)
-{
-  obj.hr += 1;
-  obj.min %= 60;
-  obj.hr %= 24;  
-}
-
 // Debouce
 
-void  isStopButton()
+void  isStartButton()
 {
-  int read_1 = digitalRead(startButton);
+  int read = digitalRead(startButton);
   
-  if (read_1 != lastStartButtonState)
+  if (read != lastStartButtonState)
   	initDebouceTime = millis();
   
   if (millis() - initDebouceTime >= debouceDelay)
   {
-    if (read_1 != startButtonState)
+    if (read != startButtonState)
     {
-    	startButtonState = read_1;
+    	startButtonState = read;
     }
   }
-  lastStartButtonState = read_1;
+  lastStartButtonState = read;
+}
+
+void  isStopButton()
+{
+  int read = digitalRead(stopButton);
+  
+  if (read != lastStopButtonState)
+  	initDebouceTime = millis();
+  
+  if (millis() - initDebouceTime >= debouceDelay)
+  {
+    if (read != stopButtonState)
+    {
+    	stopButtonState = read;
+    }
+  }
+  lastStopButtonState = read;
+}
+
+void  isResetButton()
+{
+  int read = digitalRead(resetButton);
+  
+  if (read != lastResetButtonState)
+  	initDebouceTime = millis();
+  
+  if (millis() - initDebouceTime >= debouceDelay)
+  {
+    if (read != resetButtonState)
+    {
+    	resetButtonState = read;
+      tone(8,300,3000);
+    }
+  }
+  lastResetButtonState = read;
 }
 
 void  check_alarm()
 {
   if (clock.hr == alarm.hr && clock.min == alarm.min)
   {
-    //ALARM !!
+    Serial.println("ALARMM!");
   }
 }
 
-//--------------------------------------------------------------------------//
+//--------------------------------Arduino Function ---------------------------------//
 
 void setup() {
   Serial.begin(9600);
   OLED.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
   //initislize timer1
+
   noInterrupts();
   TCCR1A = 0;
   TCCR1B = 0;
@@ -152,6 +223,9 @@ void setup() {
   TIMSK1 |= (1 <<  TOIE1);
   interrupts();
   init_clock();
+  init_eeprom();
+
+  Serial.println("-----Run kub------");
 }
 
 ISR(TIMER1_OVF_vect)
@@ -160,21 +234,33 @@ ISR(TIMER1_OVF_vect)
     t1++;
     run_up();
     print_clock();
-    // Serial.print(clock.hr);
-    // Serial.print(" : ");
-    // Serial.print(clock.min);
-    // Serial.print(" : ");
-    // Serial.println(clock.sec);
+    if (timerIsRun)
+    {
+      run_timer();
+    }
+    print_timer();
+    update_eeprom();
+
   	
 }
 
 void loop() {
 
+  int xaccel = analogRead(A0);
+  int yaccel = analogRead(A1);
+  int zaccel = analogRead(A2);
+  unsigned long timevar = millis();
+
+  int need_flip;
 
   static char message[11]; // should be "{a/t} 12:34:56"
   static unsigned int message_pos = 0;
   int input = 0;
-  
+
+  isStartButton();
+  isStopButton();
+  isResetButton();
+
   while (Serial.available() > 0)
   {
     char inByte = Serial.read();
@@ -205,6 +291,20 @@ void loop() {
     clock.min = atoi(&message[5]);
     clock.sec = atoi(&message[8]) - 1;
   }
+  if (startButtonState)
+    timerIsRun = 1;
+  else if (stopButtonState)
+    timerIsRun = 0;
+  else if (resetButtonState)
+  {
+    timerIsRun = 0;
+    init_timer();
+  }
+
+  if (xaccel < 300)
+    OLED.setRotation(2);
+  else
+    OLED.setRotation(0);
 
 
   //show
@@ -212,8 +312,21 @@ void loop() {
   OLED.setTextColor(WHITE);
   OLED.setCursor(10, 0);
   OLED.setTextSize(2);
+  OLED.print(clockStr);
+  OLED.setTextSize(1);
+  OLED.print("    \n        ");
   OLED.println(timerStr);
   OLED.display();
+
+  Serial.print(timevar);
+  Serial.print(" ");
+  Serial.print(xaccel);
+  Serial.print(" ");
+  Serial.print(yaccel);
+  Serial.print(" ");
+  Serial.println(zaccel);
+
+  
 
   
 
