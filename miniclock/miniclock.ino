@@ -9,6 +9,10 @@
 #define stopButton 3
 #define resetButton 4
 
+int reset = 0;
+int start = 0;
+int stop = 0;
+
 
 #define OLED_RESET -1
 
@@ -190,7 +194,6 @@ void  isResetButton()
     if (read != resetButtonState)
     {
     	resetButtonState = read;
-      tone(8,300,3000);
     }
   }
   lastResetButtonState = read;
@@ -198,9 +201,10 @@ void  isResetButton()
 
 void  check_alarm()
 {
-  if (clock.hr == alarm.hr && clock.min == alarm.min)
+  if (clock.hr == alarm.hr && clock.min == alarm.min && clock.sec == alarm.sec)
   {
     Serial.println("ALARMM!");
+    tone(11,300,3000);
   }
 }
 
@@ -234,6 +238,7 @@ ISR(TIMER1_OVF_vect)
     t1++;
     run_up();
     print_clock();
+    check_alarm();
     if (timerIsRun)
     {
       run_timer();
@@ -297,7 +302,6 @@ void loop() {
     timerIsRun = 0;
   else if (resetButtonState)
   {
-    timerIsRun = 0;
     init_timer();
   }
 
@@ -318,13 +322,13 @@ void loop() {
   OLED.println(timerStr);
   OLED.display();
 
-  Serial.print(timevar);
-  Serial.print(" ");
-  Serial.print(xaccel);
-  Serial.print(" ");
-  Serial.print(yaccel);
-  Serial.print(" ");
-  Serial.println(zaccel);
+  // Serial.print(timevar);
+  // Serial.print(" ");
+  // Serial.print(xaccel);
+  // Serial.print(" ");
+  // Serial.print(yaccel);
+  // Serial.print(" ");
+  // Serial.println(zaccel);
 
   
 
