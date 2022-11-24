@@ -227,7 +227,7 @@ void setup() {
   TIMSK1 |= (1 <<  TOIE1);
   interrupts();
   init_clock();
-  init_eeprom();
+  //init_eeprom();
 
   Serial.println("-----Run kub------");
 }
