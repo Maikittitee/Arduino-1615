@@ -99,7 +99,7 @@ void    loop(void)
       i++;
     }
 
-    if (is_correct(input_password))
+    if (is_complete(input_password) && is_correct(input_password))
       // door open
     else:
       serial.println("Password is NOT correct");
