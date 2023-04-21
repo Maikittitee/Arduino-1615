@@ -47,6 +47,24 @@ void selectChannel(int i){
 int correct_password[4] = {1, 2, 3, 4};
 int input_password[4] = {0, 0, 0, 0};
 
+int	pass_len(int input[4])
+{
+	int	i;
+
+	i = 0;
+
+	while (input[i])
+	{
+		i++;
+	}
+	return (i);
+}
+
+int	is_complete(int	input[4])
+{
+	return (pass_len(input) == 4);
+}
+
 int is_correct(int input[4])
 {
   int i = 0;
